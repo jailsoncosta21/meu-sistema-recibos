@@ -4,22 +4,17 @@ import json
 from fpdf import FPDF
 from google.oauth2.service_account import Credentials
 
-# --- FUNÇÃO DE CONEXÃO (À PROVA DE ERROS) ---
+# --- FUNÇÃO DE CONEXÃO ---
 def conectar_planilha():
-    # 1. Tenta carregar do Secrets (Cloud) ou do arquivo (Local)
+    # Carrega do Secrets (Cloud) ou do arquivo local
     if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
     else:
         with open('credenciais.json') as f:
             creds_dict = json.load(f)
             
-    # 2. Correção forçada para o erro InvalidByte/PEM
-    # Remove espaços extras e garante que o \n seja lido corretamente pelo Python
-    if "private_key" in creds_dict:
-        raw_key = creds_dict["private_key"]
-        creds_dict["private_key"] = raw_key.replace("\\n", "\n")
-
-    # 3. Cria as credenciais
+    # Cria as credenciais usando a biblioteca oficial do Google
+    # Ela lida nativamente com o formato da 'private_key' sem precisar de manipulação
     creds = Credentials.from_service_account_info(creds_dict)
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds = creds.with_scopes(scopes)
@@ -37,17 +32,17 @@ if st.button("Gerar Recibo"):
         st.warning("Por favor, digite a unidade.")
     else:
         try:
-            # Conecta na planilha
+            # 1. Conecta
             gc = conectar_planilha()
             sh = gc.open("Sistema de Gestão Imobiliária Completo VFinal")
             aba = sh.worksheet("Cadastro")
             registros = aba.get_all_values()
             
-            # Busca o registro
+            # 2. Busca o registro
             dados = next((l for l in registros if l[0].strip() == unidade.strip()), None)
             
             if dados:
-                # Gera PDF
+                # 3. Gera PDF
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", 'B', 16)
@@ -66,4 +61,4 @@ if st.button("Gerar Recibo"):
             else:
                 st.error("Unidade não encontrada na planilha.")
         except Exception as e:
-            st.error(f"Erro ao acessar Google Sheets: {str(e)}")
+            st.error(f"Erro de conexão: {str(e)}")
