@@ -1,18 +1,16 @@
 import streamlit as st
 import gspread
 import json
-import os
 from fpdf import FPDF
 from google.oauth2.service_account import Credentials
-from babel.numbers import format_currency
 
-# Função de Conexão Inteligente
+# --- FUNÇÃO DE CONEXÃO ---
 def conectar_planilha():
     try:
-        # Tenta carregar do Secrets (Streamlit Cloud)
+        # Tenta carregar do Secrets do Streamlit Cloud
         creds_dict = st.secrets["gcp_service_account"]
     except:
-        # Tenta carregar do arquivo local (Codespaces)
+        # Tenta carregar do arquivo local 'credenciais.json'
         with open('credenciais.json') as f:
             creds_dict = json.load(f)
     
@@ -21,8 +19,10 @@ def conectar_planilha():
     creds = creds.with_scopes(scopes)
     return gspread.authorize(creds)
 
-# Interface
+# --- INTERFACE DO APLICATIVO ---
+st.set_page_config(page_title="Sistema de Recibos")
 st.title("🏠 Gerador de Recibos")
+
 unidade = st.text_input("Digite a Unidade (ex: C04):")
 
 if st.button("Gerar Recibo"):
@@ -30,16 +30,17 @@ if st.button("Gerar Recibo"):
         st.warning("Por favor, digite a unidade.")
     else:
         try:
+            # Conexão
             gc = conectar_planilha()
             sh = gc.open("Sistema de Gestão Imobiliária Completo VFinal")
             aba = sh.worksheet("Cadastro")
             registros = aba.get_all_values()
             
-            # Localizar linha
+            # Buscar linha correspondente
             dados = next((l for l in registros if l[0].strip() == unidade.strip()), None)
             
             if dados:
-                # --- AQUI VAI A SUA LÓGICA DE PDF ---
+                # Gerar PDF
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", 'B', 16)
@@ -51,20 +52,18 @@ if st.button("Gerar Recibo"):
                 pdf.cell(200, 10, txt=f"Locatario: {dados[5]}", ln=True)
                 pdf.cell(200, 10, txt=f"Valor: {dados[3]}", ln=True)
                 
-                # Gerar em bytes
+                # Converter para bytes
                 pdf_output = pdf.output(dest='S').encode('latin-1')
                 
-                st.success("Recibo gerado!")
+                st.success(f"Dados encontrados para {dados[5]}!")
                 st.download_button(
-                    label="📥 Baixar PDF",
+                    label="📥 Baixar PDF do Recibo",
                     data=pdf_output,
                     file_name=f"Recibo_{unidade}.pdf",
                     mime="application/pdf"
                 )
             else:
-                st.error("Unidade não encontrada!")
+                st.error("Unidade não encontrada na planilha.")
+                
         except Exception as e:
-            st.error(f"Erro: {e}")
-# ... o código acima ...
-        except Exception as e:
-            st.error(f"Erro detalhado: {str(e)}")
+            st.error(f"Erro ao processar: {str(e)}")
