@@ -1,0 +1,6 @@
+streamlit
+gspread
+fpdf
+num2words
+babel
+google-auth
