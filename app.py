@@ -65,3 +65,6 @@ if st.button("Gerar Recibo"):
                 st.error("Unidade não encontrada!")
         except Exception as e:
             st.error(f"Erro: {e}")
+# ... o código acima ...
+        except Exception as e:
+            st.error(f"Erro detalhado: {str(e)}")
