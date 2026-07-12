@@ -1,15 +1,20 @@
 import streamlit as st
 import gspread
-from fpdf import FPDF
+import json
+import os
 from google.oauth2.service_account import Credentials
-from babel.numbers import format_currency
-from num2words import num2words
-import datetime
 
-# 1. Função de Conexão (Usa o Secrets do Streamlit)
 def conectar_planilha():
-    creds_dict = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(creds_dict)
+    # Tenta carregar do Secrets (Streamlit Cloud)
+    try:
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = Credentials.from_service_account_info(creds_dict)
+    except:
+        # Se falhar (Codespaces), lê o arquivo local
+        with open('credenciais.json') as f:
+            creds_dict = json.load(f)
+        creds = Credentials.from_service_account_info(creds_dict)
+    
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds = creds.with_scopes(scopes)
     return gspread.authorize(creds)
