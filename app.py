@@ -4,14 +4,27 @@ import json
 from fpdf import FPDF
 from google.oauth2.service_account import Credentials
 
-# --- FUNÇÃO DE CONEXÃO ---
 def conectar_planilha():
-    # Carrega do Secrets (Cloud) ou do arquivo local
+    # 1. Carrega o dicionário
     if "gcp_service_account" in st.secrets:
+        # st.secrets já retorna um dicionário pronto para uso
         creds_dict = dict(st.secrets["gcp_service_account"])
     else:
         with open('credenciais.json') as f:
             creds_dict = json.load(f)
+            
+    # 2. A biblioteca google-auth exige que a private_key seja uma string com \n 
+    # se o arquivo for lido via arquivo. Se vier do Secrets, ela já deve estar formatada.
+    # NÃO faremos replace, pois isso pode estar quebrando o formato da sua chave específica.
+    
+  # 3. Conecta
+    creds = Credentials.from_service_account_info(creds_dict)
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds = creds.with_scopes(scopes)
+    
+    return gspread.authorize(creds)
+
+# O restante do seu código FPDF continua igual...
             
     # Cria as credenciais usando a biblioteca oficial do Google
     # Ela lida nativamente com o formato da 'private_key' sem precisar de manipulação
